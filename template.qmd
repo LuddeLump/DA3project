@@ -60,7 +60,7 @@ df$filler_word_std <- scale(df$filler_word)
 
 
 model <- lm(comments_count_std ~ campaign_quality_std * updates_count_std + pitch_size_std + filler_word_std, data = df)
-
+#git change
 summary(model)
 
 
