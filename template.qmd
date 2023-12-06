@@ -1,0 +1,68 @@
+---
+title: "BE603 Group project"
+subtitle: "Quarto (.qmd) template"
+
+author:   
+  - Firstname Lastname (45001)
+  - Firstname Lastname (45002)
+  - Firstname Lastname (45003)
+  - Firstname Lastname (45004)
+
+toc: false
+number-sections: true
+
+format:
+  docx:
+    reference-doc: "./assets/sse-quarto-template.docx"
+
+editor: visual
+---
+
+```{r}
+#| echo: false
+
+# This code chunk installs the required libraries in your environment, if they are not yet installed.
+pckgs <- c("rio", "corrplot", "vtable",
+           "ggplot2", "ggfortify",
+           "sandwich", "lmtest", 
+           "multilevel", "mediation")
+
+pckgs <- pckgs[!pckgs %in% installed.packages()]
+
+install.packages(pckgs,
+                 dependencies = TRUE,
+                 type = "binary")
+
+```
+
+# Hypotheses
+
+1.  **Hypothesis 1:** There is a significant relationship between crowdfunding campaign quality and the total funds collected, through the level of engagement of the backers in the campaign.
+
+2.  **Hypothesis 2:** There is a significant relationship between crowdfunding campaign quality and the level of engagement of the backers in the campaign.
+
+3.  **Hypothesis 3:** The relationship between crowdfunding campaign quality and the level of engagement of the backers in the campaign is moderated by the amount of effort the campaigners engage to interact with the backers.
+
+# Analyses
+
+```{r}
+# Loading the data
+df <- rio::import("./data/campaigns.Rds")
+
+
+df$campaign_quality_std <- as.numeric(scale(df$campaign_quality)) # IV 
+df$comments_count_std <- as.numeric(scale(df$comments_count)) # DV 
+df$updates_count_std <- as.numeric(scale(df$updates_count)) # moderation variable
+
+# control variables
+df$pitch_size_std <- scale(df$pitch_size)
+df$filler_word_std <- scale(df$filler_word)
+
+
+model <- lm(comments_count_std ~ campaign_quality_std * updates_count_std + pitch_size_std + filler_word_std, data = df)
+
+summary(model)
+
+
+< 
+```
