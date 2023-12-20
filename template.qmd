@@ -25,7 +25,7 @@ editor: visual
 pckgs <- c("rio", "corrplot", "vtable",
            "ggplot2", "ggfortify",
            "sandwich", "lmtest", 
-           "multilevel", "mediation")
+           "multilevel", "mediation", "corrplot")
 
 pckgs <- pckgs[!pckgs %in% installed.packages()]
 
@@ -45,9 +45,25 @@ install.packages(pckgs,
 
 # Analyses
 
+To examine Hypothesis 3, we identify 'campaign_quality' as the independent variable (IV) and the number of comments on the campaign as the dependent variable (DV). The moderating effect is hypothesized to stem from the campaigners' efforts to interact with backers, which we propose to operationalize using the number of campaign updates as a metric. Additionally, we must select appropriate control variables. Inspired by the description for the variables, potential control variables include "pitch_size", "filler words", and "duration". However, their relevance to our analysis depends on their correlation with both the IV and DV. To assess this, we will analyze the correlation matrix
+
 ```{r}
-# Loading the data
+
 df <- rio::import("./data/campaigns.Rds")
+
+
+```
+
+```{r}
+
+library(corrplot)
+corr_matr =  cor(df)
+corrplot(corr_matr)
+```
+
+Intuitively, it may be assumed that factors such as pitch size, filler words, and duration could influence the IV and DV, necessitating their control in the analysis. However, upon examining the correlation matrix, it becomes evident that pitch size is an effective control variable. Conversely, the quantity of filler words appears to have no significant correlation. Therefore, we have chosen pitch size as our primary control variable.
+
+```{r}
 
 
 df$campaign_quality_std <- as.numeric(scale(df$campaign_quality)) # IV 
@@ -56,13 +72,56 @@ df$updates_count_std <- as.numeric(scale(df$updates_count)) # moderation variabl
 
 # control variables
 df$pitch_size_std <- scale(df$pitch_size)
-df$filler_word_std <- scale(df$filler_word)
 
 
-model <- lm(comments_count_std ~ campaign_quality_std * updates_count_std + pitch_size_std + filler_word_std, data = df)
-#git change
+
+model <- lm(comments_count_std ~ campaign_quality_std * updates_count_std + pitch_size_std, data = df)
+
 summary(model)
 
 
-< 
+
+
 ```
+
+We see that the moderating effect in this model is not significant, thus we cannot reject the null hypothesis that "The relationship between crowd-funding campaign quality and the level of engagement of the backers in the campaign is not moderated by the amount of effort the campaigners engage to interact with the backers.". We also notice that the Multiple R-squared value is about 10%, which means that our model accurately captures about 10 % of the data variance, this result is not very good. However, we see that the updates_count and pitch_size are significant. Looking back at the correlation matrix from earlier, "collected_funds" seems to be highly correlated with "comments_count", perhaps a model including this variable could explain more of the variance. It is interesting to note that the "campaign_quality" variable in the linear model was not significant at all. With this in mind it makes sense that the moderating effect would also be insignificant.
+
+Our analysis reveals that the moderating effect in this model is not statistically significant. Consequently, we cannot dismiss the null hypothesis stating that the relationship between crowdfunding campaign quality and backer engagement level is not moderated by the campaigners' interaction efforts. Additionally, the Multiple R-squared value of approximately 10% indicates that our model explains only about 10% of the data variance, which is not particularly strong. However, it's interesting to note that both 'updates_count' and 'pitch_size' are significant factors. Recalling the earlier correlation matrix, there is a strong correlation between 'collected_funds' and 'comments_count', suggesting that including 'collected_funds' in the model might account for more variance. Interestingly, the 'campaign_quality' variable was not significant in the linear model either
+
+```{r}
+#| label: fig-normality
+#| fig-cap: "Normality of the residuals"
+#| fig-align: "center"
+#| fig-width: 5
+#| fig-height: 3
+#| dpi: 1200
+
+library(ggplot2)
+df$residuals <- model$residuals
+
+ggplot(df) + aes(x = residuals) + 
+  geom_histogram(bins = 200) +
+  labs(x = "Residuals") + theme_classic()
+```
+
+```{r}
+car::vif(model, type = "predictor")
+```
+
+```{r}
+olsrr::ols_plot_cooksd_chart(model)
+```
+
+```{r}
+lmtest::bptest(model)
+```
+
+The Variance Inflation Factor (VIF) test reveals values less than 2 for all variables. This suggests a minimal presence of multicollinearity among the variables.
+
+Based on the Breusch-Pagan (BP) test, we reject the null hypothesis of homoscedasticity, indicating that our data is likely heteroscedastic.
+
+Additionally, the residual plot supports the assumption of normality in the residuals.
+
+From Cook's D statistic, we also seem to have a few out liars.
+
+In light of these findings, our confidence in the linear model is somewhat undermined. To address heteroscedasticity, one potential solution is transforming the dependent variable to achieve homoscedasticity, where the variance of errors is consistent. Regarding outliers, it is generally bad practice to remove them without thorough investigation. It's essential to examine the origins of these data points to understand why they deviate significantly. If outliers are simply removed, we might observe some intriguing results, but there's a risk of losing crucial information that these outliers might represent. It's important to avoid discarding potentially valuable insights that outliers could provide.
